@@ -90,7 +90,7 @@ class Parser(threading.Thread):
         return self.id_number_cad
 
     def site_1_parser_two(self, result):
-        # TODO сделать проверку на адресс и брать наиболее подходящий return id_land
+        # TODO сделать проверку на адресс и брать наиболее подходящий return id
         # print('*' * 50)
         # print('site 1 two')
         self.id_land = result['features'][0]['attrs']['cn']
@@ -120,7 +120,7 @@ class Parser(threading.Thread):
     def site_3_parser_one(self, result):
         # print('*' * 50)
         # print('site 3 one')
-        if result['count'] > 0:
+        if result['ginObjects']:
             self.date_check = result['ginObjects'][0]['dateEvent']
             self.date_result = result['ginObjects'][0]['result']
         # print(self.date_check, self.date_check, sep='\n')
@@ -142,7 +142,7 @@ class Parser(threading.Thread):
         self.site_2_run()
         self.site_3_run()
 
-        self.data_for_record = [self.number, self.address, self.c_price, self.area, self.caption,
+        self.data_for_record = [self.number, self.address, self.c_price, self.area,
                                 self.id_land, self.title_land, self.year_2017, self.year_2018, self.year_2019,
                                 self.year_2020, self.date_check, self.date_result]
 
@@ -182,7 +182,7 @@ def main():
     wb = Workbook()
     ws = wb.active
 
-    fields = ['Кадастровый  номер здания', 'Адресс', 'Кадастровая стоимость', 'Общая площадь', 'Назначение',
+    fields = ['Кадастровый  номер здания', 'Адресс', 'Кадастровая стоимость', 'Общая площадь',
               'Кадастровый номер (земельного участка)', 'по документу', '2017', '2018', '2019', '2020',
               'Дата проведения мероприятия', 'Результат']
     numbers = one_number_get(xlsx_data_parsing())  # activate generator numbers in data_numbers list
