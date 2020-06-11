@@ -38,7 +38,6 @@ class Parser(threading.Thread):
         self.address = ''
         self.c_price = None  # float
         self.area = None  # float
-        self.caption = 'Нежилое здание'
         self.id_land = None  # int
         self.title_land = ''
         self.year_2017 = ''
@@ -138,9 +137,12 @@ class Parser(threading.Thread):
     def run(self):
         id_data = self._correct_number()
 
-        self.site_1_run(id_data)
-        self.site_2_run()
-        self.site_3_run()
+        try:
+            self.site_1_run(id_data)
+            self.site_2_run()
+            self.site_3_run()
+        except Exception as exp:
+            logger.info(exp)
 
         self.data_for_record = [self.number, self.address, self.c_price, self.area,
                                 self.id_land, self.title_land, self.year_2017, self.year_2018, self.year_2019,
