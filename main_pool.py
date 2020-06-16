@@ -1,6 +1,7 @@
 import logging
 import random
 import time
+
 import requests
 from multiprocessing.pool import ThreadPool
 from openpyxl import Workbook
@@ -38,7 +39,8 @@ class Parser:
         self.c_price = None  # float
         self.area = None  # float
         self.id_land = None  # int
-        self.title_land = ''
+        self.cn_land = None  # int
+        self.title_land = None
         self.year_2017 = ''
         self.year_2018 = ''
         self.year_2019 = ''
@@ -50,6 +52,12 @@ class Parser:
         self.data_for_record = []
         self.error_numbers = []
 
+        self.proxies_one = {
+            'https': 'тут прокси'
+        }
+        self.proxies_two = {
+            'https': 'тут прокси'
+        }
         self.data_json = {
             "cadastralNumber": self.number,
             }
@@ -68,62 +76,71 @@ class Parser:
             try:
                 time.sleep(random.randint(1, 3))
                 if not post:
-                    result = self.session.get(url=url)
+                    result = self.session.get(url=url, proxies=self.proxies_one, timeout=10)
                 else:
-                    result = self.session.post(url=url, data=data, json=json)
+                    result = self.session.post(url=url, data=data, json=json, proxies=self.proxies_two, timeout=10)
                 data = result.json()
                 return data
             except Exception as exp:
+                time.sleep(random.randint(2, 5))
                 logger.info(exp)
-                time.sleep(random.randint(1, 3))
 
     def site_1_parser_one(self, result):
-        # print('*' * 50)
-        # print('site 1 one')
         self.address = result['feature']['attrs']['address']
         self.id_number_cad = result['feature']['attrs']['id']
         self.c_price = result['feature']['attrs']['cad_cost']
         self.area = result['feature']['attrs']['area_value']
 
-        # print(self.address, self.id_number_cad, self.c_price, self.area, sep='\n')
-
         return self.id_number_cad
 
     def site_1_parser_two(self, result):
-        # TODO сделать проверку на адресс и брать наиболее подходящий return id
-        # print('*' * 50)
-        # print('site 1 two')
+        if len(result['features']) == 1:
+            self.id_land = result['features'][0]['attrs']['cn']
+            return result['features'][0]['attrs']['id']
+
+        for idx in result['features']:
+            code = idx['attrs']['sa_status']['code']
+            if code == 1:
+                self.id_land = idx['attrs']['cn']
+                return idx['attrs']['id']
+
         self.id_land = result['features'][0]['attrs']['cn']
         return result['features'][0]['attrs']['id']
 
+    # def _treatment_id_land(self, idx, building):
+    #     address_land = idx['attrs']['address']
+    #     address_land = address_land.replace(',', '')
+    #     address_land = address_land.replace('.', '')
+    #     address_land = address_land.lower().split()
+    #
+    #     address = building.replace(',', '')
+    #     address = address.replace('.', '')
+    #     address = address.lower().split()
+    #     count = 0
+    #     for text in address:
+    #         if text in address_land:
+    #             count += 1
+    #     if count >= len(address) - 1:
+    #         return idx['attrs']['cn'], idx['attrs']['id']
+
     def site_1_parser_three(self, result):
-        # print('*' * 50)
-        # print('site 1 three')
         self.title_land = result['feature']['attrs']['util_by_doc']
-        # print(self.title_land)
 
     @staticmethod
     def site_2_parser_one(result):
-        # print('*' * 50)
-        # print('site 2 one')
         id_land = result['point'][0]['id']
         return id_land
 
     def site_2_parser_two(self, result):
-        # print('*' * 50)
-        # print('site 2 two')
         for item in result:
             id_data = item['year']
             came_under_taxation_string = item['cameUnderTaxationString']
             self._check_in_date(id_data, came_under_taxation_string)
 
     def site_3_parser_one(self, result):
-        # print('*' * 50)
-        # print('site 3 one')
         if result['ginObjects']:
             self.date_check = result['ginObjects'][0]['dateEvent']
             self.date_result = result['ginObjects'][0]['result']
-        # print(self.date_check, self.date_check, sep='\n')
 
     def _check_in_date(self, date, data):
         if date == 2020:
@@ -136,11 +153,19 @@ class Parser:
             self.year_2017 = data
 
     def run(self):
-        id_data = self._correct_number()
 
         try:
+            id_data = self._correct_number()
             self.site_1_run(id_data)
+        except Exception as exp:
+            logger.info(exp)
+
+        try:
             self.site_2_run()
+        except Exception as exp:
+            logger.info(exp)
+
+        try:
             self.site_3_run()
         except Exception as exp:
             logger.info(exp)
@@ -192,16 +217,20 @@ def main():
 
     parser = [Parser(number) for number in numbers]
 
-    pool = ThreadPool(200)
+    pool = ThreadPool(60)
 
     pool.map(lambda f: f.run(), parser)
 
     ws.append(fields)
     for page in parser:
         ws.append(page.data_for_record)
-    wb.save('result.xlsx')
+    wb.save('result_0.xlsx')
 
 
-# Time run func 3168 sec. 5050 numbers
+# ThreadPool(101) - Time run func 10267 sec. 4993 numbers
+# ThreadPool(150) - Time run func 14316 sec. 4999 numbers
+# ThreadPool(50) - Time run func 4290 sec. 4100 numbers
+# ThreadPool(70) - Time run func 3715 sec. 3918 numbers
+# ThreadPool(60) - Time run func 4619 sec. 4382 numbers
 if __name__ == '__main__':
     main()

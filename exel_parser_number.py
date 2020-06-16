@@ -8,7 +8,8 @@ def xlsx_data_parsing():
     sheet = wb.worksheets[1]
 
     for row in sheet.iter_rows(min_row=3, max_row=sheet.max_row):
-        data_numbers.append(row[1].value)
+        if row[1].value:
+            data_numbers.append(row[1].value)
 
     print('Load finish list')
     print(len(data_numbers))
