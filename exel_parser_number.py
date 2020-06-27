@@ -4,7 +4,7 @@ data_numbers = []
 
 
 def xlsx_data_parsing():
-    wb = load_workbook('./data.xlsx')
+    wb = load_workbook('./data2.xlsx')
     sheet = wb.worksheets[1]
 
     for row in sheet.iter_rows(min_row=3, max_row=sheet.max_row):
